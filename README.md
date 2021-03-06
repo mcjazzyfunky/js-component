@@ -19,13 +19,13 @@ import counterStyles from './styles/counter.scss'
   styles: [counterStyles]
 })
 class Counter extends Component {
-  @prop()
+  @prop
   label = 'Counter'
 
-  @state()
+  @state
   private count = 0
 
-  @bind()
+  @bind
   private onClick() {
     this.count++
   }

@@ -6,10 +6,10 @@ import { bind, element, html, prop, state, Component } from 'js-element'
 class SimpleCounter extends Component {
   label = 'Counter'
 
-  @state()
+  @state
   private count = 0
 
-  @bind()
+  @bind
   private onClick() {
     this.count++
   }

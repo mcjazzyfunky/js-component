@@ -45,32 +45,30 @@ const componentMetaMap = new Map<ComponentConstructor, ComponentMeta>()
 
 // === decorators ====================================================
 
-function bind(): <T extends Function>(
+function bind<T extends Function>(
   target: object,
   propertyKey: string,
   descriptor: TypedPropertyDescriptor<T>
-) => TypedPropertyDescriptor<T> | void {
-  return function (target, propertyKey, descriptor): any {
-    if (!descriptor || typeof descriptor.value !== 'function') {
-      throw new TypeError(
-        `Only methods can be decorated with @callback. <${propertyKey}> is not a method!`
-      )
-    }
+): TypedPropertyDescriptor<T> {
+  if (!descriptor || typeof descriptor.value !== 'function') {
+    throw new TypeError(
+      `Only methods can be decorated with @callback. <${propertyKey}> is not a method!`
+    )
+  }
 
-    return {
-      configurable: true,
+  return {
+    configurable: true,
 
-      get(this: any): any {
-        const bound: any = descriptor.value!.bind(this)
+    get(this: any): any {
+      const bound: any = descriptor.value!.bind(this)
 
-        Object.defineProperty(this, propertyKey, {
-          value: bound,
-          configurable: true,
-          writable: true
-        })
+      Object.defineProperty(this, propertyKey, {
+        value: bound,
+        configurable: true,
+        writable: true
+      })
 
-        return bound
-      }
+      return bound
     }
   }
 }
@@ -79,33 +77,23 @@ function prop() {
   // TODO
 }
 
-function state(): any {
-  return function (target: Component, propertyKey: string) {
-    const valueMap = new WeakMap<Function, any>()
+function state(target: Component, propertyKey: string): void {
+  const valueMap = new WeakMap<Function, any>()
 
-    const getter = function (this: any) {
-      return valueMap.get(this)
-    }
-
-    const setter = function (this: any, value: any) {
-      valueMap.set(this, value)
-      this.refresh()
-    }
-
-    /*
-    Object.defineProperty(target, propertyKey, {
-      enumerable: true,
-      get: getter,
-      set: setter
-    })
-    */
-
-    return {
-      enumerable: true,
-      get: getter,
-      set: setter
-    }
+  const getter = function (this: any) {
+    return valueMap.get(this)
   }
+
+  const setter = function (this: any, value: any) {
+    valueMap.set(this, value)
+    this.refresh()
+  }
+
+  Object.defineProperty(target, propertyKey, {
+    enumerable: true,
+    get: getter,
+    set: setter
+  })
 }
 
 function element(params: {
