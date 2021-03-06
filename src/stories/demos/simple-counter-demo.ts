@@ -22,7 +22,8 @@ class SimpleCounter extends Component {
 }
 
 @element({
-  tag: 'simple-counter-demo'
+  tag: 'simple-counter-demo',
+  uses: [SimpleCounter]
 })
 export default class SimpleCounterDemo extends Component {
   render() {

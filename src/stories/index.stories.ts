@@ -1,4 +1,5 @@
 import SimpleCounterDemo from './demos/simple-counter-demo'
+import ClockDemo from './demos/clock-demo'
 
 export default {
   title: 'Demos'
@@ -15,3 +16,4 @@ function toKebabCase(s: string): string {
 }
 
 export const simpleCounter = demo(SimpleCounterDemo)
+export const clock = demo(ClockDemo)

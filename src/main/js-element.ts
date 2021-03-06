@@ -80,19 +80,31 @@ function prop() {
 function state(target: Component, propertyKey: string): void {
   const valueMap = new WeakMap<Function, any>()
 
-  const getter = function (this: any) {
-    return valueMap.get(this)
-  }
+  const enhanceComponent = (component: Component, initialValue?: any) => {
+    let value: any = initialValue
 
-  const setter = function (this: any, value: any) {
-    valueMap.set(this, value)
-    this.refresh()
+    Object.defineProperty(component, propertyKey, {
+      enumerable: true,
+      get: () => value,
+
+      set: (newValue: any) => {
+        value = newValue
+        component.refresh()
+      }
+    })
   }
 
   Object.defineProperty(target, propertyKey, {
     enumerable: true,
-    get: getter,
-    set: setter
+
+    get(this: any) {
+      enhanceComponent(this)
+      // return undefined - just for documentation
+    },
+
+    set(this: any, value: any) {
+      enhanceComponent(this, value)
+    }
   })
 }
 
@@ -172,11 +184,36 @@ function element(params: {
           },
 
           addLifecyleTask(type: LifecycleType, task: Task) {
-            // TODO!!!!
+            switch (type) {
+              case 'mount':
+                if (!mountNotifier) {
+                  mountNotifier = createNotifier()
+                }
+
+                mountNotifier.subscribe(task)
+                break
+
+              case 'update':
+                if (!updateNotifier) {
+                  updateNotifier = createNotifier()
+                }
+
+                updateNotifier.subscribe(task)
+                break
+
+              case 'unmount':
+                if (!unmountNotifier) {
+                  unmountNotifier = createNotifier()
+                }
+
+                unmountNotifier.subscribe(task)
+                break
+            }
           }
         }
 
         const component = new ComponentClass(ctrl)
+        component.init()
 
         this.connectedCallback = () => {
           render()
@@ -241,6 +278,7 @@ class Component {
     // will be overidden in constructor
   }
 
+  init() {}
   onMount() {}
   onUpdate() {}
   onUnmount() {}
