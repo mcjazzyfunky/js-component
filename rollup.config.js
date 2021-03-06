@@ -7,7 +7,7 @@ import gzip from 'rollup-plugin-gzip'
 
 const configs = []
 
-for (const pkg of ['root', 'hooks', 'utils']) {
+for (const pkg of ['root']) {
   for (const format of ['esm', 'umd', 'cjs']) {
     for (const productive of [false, true]) {
       configs.push(createConfig(pkg, format, productive))
@@ -25,14 +25,14 @@ function createConfig(pkg, moduleFormat, productive) {
   return {
     input:
       pkg === 'root'
-        ? 'src/main/js-elements.ts'
-        : `src/main/js-elements-${pkg}.ts`,
+        ? 'src/main/js-element.ts'
+        : `src/main/js-element-${pkg}.ts`,
 
     output: {
       file:
         pkg === 'root'
-          ? `dist/js-elements.${moduleFormat}.${env}.js`
-          : `dist/js-elements-${pkg}.${moduleFormat}.${env}.js`,
+          ? `dist/js-element.${moduleFormat}.${env}.js`
+          : `dist/js-element-${pkg}.${moduleFormat}.${env}.js`,
 
       format: moduleFormat,
       sourcemap: false, // productive ? false : 'inline', // TODO

@@ -5,6 +5,7 @@
     "module": "ES2015",
     "moduleResolution": "node",
     "strict": true,
+    "useDefineForClassFields": false,
     "allowSyntheticDefaultImports": true,
     "removeComments": true,
     "preserveConstEnums": true,

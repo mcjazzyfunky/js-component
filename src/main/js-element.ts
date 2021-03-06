@@ -1,14 +1,16 @@
 // @ts-ignore
-import { html } from 'uhtml'
+import { html, render as uhtmlRender, svg } from './patched-uhtml'
 
 // === exports =======================================================
 
-export { element, prop, state, Component }
+export { bind, element, html, prop, state, svg, Component }
 
 // === types =========================================================
 
+type Content = any // TODO
+
 type ComponentConstructor = {
-  new (elem: HTMLElement): Component
+  new (ctrl: Ctrl): Component
 }
 
 type PropMeta = {}
@@ -17,6 +19,24 @@ type StateMeta = {}
 type ComponentMeta = {
   props: Map<string, PropMeta>
   states: Map<string, StateMeta>
+  methodsToBind: string[]
+}
+
+type Task = () => void
+
+type Notifier = {
+  subscribe(subscriber: Task): void
+  notify(): void
+}
+
+type LifecycleType = 'mount' | 'unmount' | 'update'
+
+type Ctrl = {
+  getTagName(): string
+  getHost(): HTMLElement
+  isMounted(): boolean
+  refresh(): void
+  addLifecyleTask(type: LifecycleType, task: Task): void
 }
 
 // === meta data =====================================================
@@ -24,6 +44,69 @@ type ComponentMeta = {
 const componentMetaMap = new Map<ComponentConstructor, ComponentMeta>()
 
 // === decorators ====================================================
+
+function bind(): <T extends Function>(
+  target: object,
+  propertyKey: string,
+  descriptor: TypedPropertyDescriptor<T>
+) => TypedPropertyDescriptor<T> | void {
+  return function (target, propertyKey, descriptor): any {
+    if (!descriptor || typeof descriptor.value !== 'function') {
+      throw new TypeError(
+        `Only methods can be decorated with @callback. <${propertyKey}> is not a method!`
+      )
+    }
+
+    return {
+      configurable: true,
+
+      get(this: any): any {
+        const bound: any = descriptor.value!.bind(this)
+
+        Object.defineProperty(this, propertyKey, {
+          value: bound,
+          configurable: true,
+          writable: true
+        })
+
+        return bound
+      }
+    }
+  }
+}
+
+function prop() {
+  // TODO
+}
+
+function state(): any {
+  return function (target: Component, propertyKey: string) {
+    const valueMap = new WeakMap<Function, any>()
+
+    const getter = function (this: any) {
+      return valueMap.get(this)
+    }
+
+    const setter = function (this: any, value: any) {
+      valueMap.set(this, value)
+      this.refresh()
+    }
+
+    /*
+    Object.defineProperty(target, propertyKey, {
+      enumerable: true,
+      get: getter,
+      set: setter
+    })
+    */
+
+    return {
+      enumerable: true,
+      get: getter,
+      set: setter
+    }
+  }
+}
 
 function element(params: {
   tag: string
@@ -37,8 +120,15 @@ function element(params: {
 
   return (ComponentClass) => {
     if (customElements.get(tagName)) {
+      console.clear()
       location.reload() // TODO!!!!
       return
+    }
+
+    let metaMap = componentMetaMap.get(ComponentClass) || null
+
+    if (metaMap) {
+      componentMetaMap.delete(ComponentClass)
     }
 
     class CustomElement extends HTMLElement {
@@ -53,6 +143,12 @@ function element(params: {
 
         this.attachShadow({ mode: 'open' })
 
+        let mounted = false
+        let updateRequested = false
+        let mountNotifier: Notifier | null = null
+        let updateNotifier: Notifier | null = null
+        let unmountNotifier: Notifier | null = null
+
         const shadowRoot = this.shadowRoot!
         const container = styles ? document.createElement('span') : shadowRoot
 
@@ -64,15 +160,47 @@ function element(params: {
           shadowRoot.append(container)
         }
 
-        const component = new ComponentClass(this)
+        const render = () => {
+          uhtmlRender(container, component.render())
+          mounted && updateNotifier && updateNotifier.notify()
+        }
+
+        const ctrl: Ctrl = {
+          getTagName: () => tagName,
+          getHost: () => this,
+          isMounted: () => mounted,
+
+          refresh() {
+            if (!mounted || updateRequested) {
+              return
+            }
+
+            updateRequested = true
+
+            requestAnimationFrame(() => {
+              updateRequested = false
+              render()
+            })
+          },
+
+          addLifecyleTask(type: LifecycleType, task: Task) {
+            // TODO!!!!
+          }
+        }
+
+        const component = new ComponentClass(ctrl)
 
         this.connectedCallback = () => {
-          container.innerHTML = '[custom component]'
+          render()
+          mounted = true
+          mountNotifier && mountNotifier.notify()
           component.onMount()
         }
 
         this.disconnectedCallback = () => {
+          unmountNotifier && unmountNotifier.notify()
           component.onUnmount()
+          container.innerHTML = ''
         }
       }
 
@@ -91,45 +219,60 @@ function element(params: {
   }
 }
 
-function prop() {
-  // TODO
-}
-
-function state() {
-  // TODO
-}
-
 // === Component =====================================================
 
 class Component {
-  constructor(elem: Element) {
-    let updateRequested = false
-    let mounted = false
-
-    this.refresh = () => {
-      if (updateRequested) {
-        return
-      }
-
-      window.requestAnimationFrame(() => {
-        updateRequested = false
-        // TODO
-      })
-    }
+  constructor(ctrl: Ctrl) {
+    this.getTagName = ctrl.getTagName
+    this.getHost = ctrl.getHost
+    this.isMounted = ctrl.isMounted
+    this.refresh = ctrl.refresh
+    this.addLifecycleTask = ctrl.addLifecyleTask
   }
 
   // @ts-ignore
-  getElement(): HTMLElement {
+  getTagName(): string {
     // will be overriden in constructor
   }
 
-  onMount() {}
+  // @ts-ignore
+  getHost(): HTMLElement {
+    // will be overriden in constructor
+  }
 
-  onUpdate() {}
-
-  onUnmount() {}
+  // @ts-ignore
+  isMounted(): boolean {
+    // will be overriden in constructor
+  }
 
   refresh() {
     // will be overidden in constructor
   }
+
+  addLifecycleTask(type: LifecycleType, task: Task) {
+    // will be overidden in constructor
+  }
+
+  onMount() {}
+  onUpdate() {}
+  onUnmount() {}
+  render() {}
 }
+
+// === createNotifier ================================================
+
+function createNotifier(): Notifier {
+  const subscribers: (() => void)[] = []
+
+  return {
+    subscribe(subscriber: () => void) {
+      subscribers.push(subscriber)
+    },
+
+    notify() {
+      subscribers.forEach((subscriber) => subscriber())
+    }
+  }
+}
+
+// === helpers =======================================================

@@ -2165,6 +2165,11 @@
   dependencies:
     "@types/yargs-parser" "*"
 
+"@ungap/create-content@^0.3.1":
+  version "0.3.1"
+  resolved "https://registry.yarnpkg.com/@ungap/create-content/-/create-content-0.3.1.tgz#b1504143d408f04e85ba38d9a20aace142142090"
+  integrity sha512-SHzmtS3KHG+gzNhO/E0tFqs12vNC5H3YxpF8a8AeodB/iX3ZYcxzS8vgWXbDGmHy6bgl7m+f9+wDKBdqOVT5FA==
+
 "@webassemblyjs/ast@1.9.0":
   version "1.9.0"
   resolved "https://registry.yarnpkg.com/@webassemblyjs/ast/-/ast-1.9.0.tgz#bd850604b4042459a5a41cd7d338cbed695ed964"
@@ -2679,6 +2684,11 @@ async-each@^1.0.1:
   version "1.0.3"
   resolved "https://registry.yarnpkg.com/async-each/-/async-each-1.0.3.tgz#b727dbf87d7651602f06f4d4ac387f47d91b0cbf"
   integrity sha512-z/WhQ5FPySLdvREByI2vZiTWwCnF0moMJ1hK9YQwDTHKh6I7/uSckMetoRGb5UBZPC1z0jlw+n/XCgjeH7y1AQ==
+
+async-tag@^0.2.0:
+  version "0.2.0"
+  resolved "https://registry.yarnpkg.com/async-tag/-/async-tag-0.2.0.tgz#77a1cc00692fcb327b231bf07af6d80abc30a3b4"
+  integrity sha512-hNstPiQvxVVJdkBjfBsNb3zDEM2IUY3Xp7qaadEnhaGXq1/OFdS+TuwjEJxnIvZRm7e13KrPW74fIeDra7P5vw==
 
 async@0.9.x:
   version "0.9.2"
@@ -9647,6 +9657,42 @@ typescript@^4.2.2:
   resolved "https://registry.yarnpkg.com/typescript/-/typescript-4.2.3.tgz#39062d8019912d43726298f09493d598048c1ce3"
   integrity sha512-qOcYwxaByStAWrBf4x0fibwZvMRG+r4cQoTjbPtUlrWjBHbmCAww1i448U0GJ+3cNNEtebDteo/cHOR3xJ4wEw==
 
+uarray@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/uarray/-/uarray-1.0.0.tgz#e89bf0ea2129596f4bf653b66e53246ed6562b6c"
+  integrity sha512-LHmiAd5QuAv7pU2vbh+Zq9YOnqVK0H764p2Ozinpfy9ka58OID4IsGLiXsitqH7n0NAIDxvax1A/kDXpii/Ckg==
+
+udomdiff@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/udomdiff/-/udomdiff-1.1.0.tgz#1d0c4741b93a2ffd10728ca4cea15b277cc3082f"
+  integrity sha512-aqjTs5x/wsShZBkVagdafJkP8S3UMGhkHKszsu1cszjjZ7iOp86+Qb3QOFYh01oWjPMy5ZTuxD6hw5uTKxd+VA==
+
+uhandlers@^0.5.0:
+  version "0.5.0"
+  resolved "https://registry.yarnpkg.com/uhandlers/-/uhandlers-0.5.0.tgz#f392961ae42f404118e48125f5fdc3fff88dcf87"
+  integrity sha512-k62zN6xdC97MbVUCtGyq5Pm+vYwf4vJ5z/KNo4bCEclZzsyi5T5pFrJxHVYqdht+3diCyK7KveUsJPXFJajYfQ==
+  dependencies:
+    uarray "^1.0.0"
+
+uhtml@^2.6.0:
+  version "2.6.0"
+  resolved "https://registry.yarnpkg.com/uhtml/-/uhtml-2.6.0.tgz#728dc388f45f1231cfa3b0e79c5ddffc019fc962"
+  integrity sha512-WFCyNzdwzl8+azAU9cblG8fc+VCbvFqIftYY6YQo2x1kVqm8HT3jk/T8K/YyfC1uP8o0RavqNCJvO621z8wj3A==
+  dependencies:
+    "@ungap/create-content" "^0.3.1"
+    async-tag "^0.2.0"
+    uarray "^1.0.0"
+    udomdiff "^1.1.0"
+    uhandlers "^0.5.0"
+    umap "^1.0.2"
+    uparser "^0.2.1"
+    uwire "^1.1.0"
+
+umap@^1.0.2:
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/umap/-/umap-1.0.2.tgz#2d7d4b145ad8c9f957921460798f3e221347c981"
+  integrity sha512-bW127HgG4H4VAD6qlqO5vCC+7bnlYvZ6A6BdwyGblkWvlEG7VYpj1bcpf3iJpvyKmkPZWDIeZDmoULz67ec7NA==
+
 unbox-primitive@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/unbox-primitive/-/unbox-primitive-1.0.0.tgz#eeacbc4affa28e9b3d36b5eaeccc50b3251b1d3f"
@@ -9825,6 +9871,11 @@ untildify@^4.0.0:
   resolved "https://registry.yarnpkg.com/untildify/-/untildify-4.0.0.tgz#2bc947b953652487e4600949fb091e3ae8cd919b"
   integrity sha512-KK8xQ1mkzZeg9inewmFVDNkg3l5LUhoq9kN6iWYB/CC9YMG8HA+c1Q8HwDe6dEX7kErrEVNVBO3fWsVq5iDgtw==
 
+uparser@^0.2.1:
+  version "0.2.1"
+  resolved "https://registry.yarnpkg.com/uparser/-/uparser-0.2.1.tgz#0251e7bca14ebeb222b79baf806784e40870ad47"
+  integrity sha512-hTwK8e+bAaER8gJBOysoFGjRPsX/xOthSPR/ieI9EgTf1rts9ey25tbDXIU0rDr/cGcLsvkCo1n8J/eccfAvvw==
+
 upath@^1.1.1:
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/upath/-/upath-1.2.0.tgz#8f66dbcd55a883acdae4408af8b035a5044c1894"
@@ -9929,6 +9980,13 @@ uuid@^8.0.0:
   version "8.3.2"
   resolved "https://registry.yarnpkg.com/uuid/-/uuid-8.3.2.tgz#80d5b5ced271bb9af6c445f21a1a04c606cefbe2"
   integrity sha512-+NYs2QeMWy+GWFOEm9xnn6HCDp0l7QBD7ml8zLUmJ+93Q5NF0NocErnwkTkXVFNiX3/fpC6afS8Dhb/gz7R7eg==
+
+uwire@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/uwire/-/uwire-1.1.0.tgz#ae72a770a140311a0d640aebb21131a7934988ca"
+  integrity sha512-XJPmJnySabt8D0/wnfFFywgUOBnXszDEW32nEVIfOx1n6gLTZSp+X+70+blSnHKNiIUVSFPmmRuxOal0I/aB5g==
+  dependencies:
+    uarray "^1.0.0"
 
 v8-compile-cache@^2.0.3:
   version "2.2.0"

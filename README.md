@@ -1,4 +1,4 @@
-# js-elements
+# js-element
 
 A R&D project to evaluate a class-based solution to develop custom elements.
 
