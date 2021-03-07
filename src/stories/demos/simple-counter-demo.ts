@@ -18,23 +18,25 @@ class SimpleCounter extends Component {
     this.count++
   }
 
-  init() {
+  beforeMount() {
     this.count = this.initialCount
   }
 
-  onMount() {
+  afterMount() {
     console.log(`Mounted "${this.getTagName()}"`)
   }
 
-  onUpdate() {
+  afterUpdate() {
     console.log(`Updated "${this.getTagName()}"`)
   }
 
-  onUnmount() {
+  beforeUnmount() {
     console.log(`Unmounting "${this.getTagName()}"`)
   }
 
   render() {
+    console.log(this.label, this.initialCount)
+
     return html`
       <button @click=${this.onClick}>${this.label}: ${this.count}</button>
     `
@@ -51,8 +53,8 @@ export default class SimpleCounterDemo extends Component {
       <div>
         <simple-counter label="Counter 1" />
         <simple-counter
+          initial-count="100"
           label="Counter 2 (starting with 100)"
-          initialCount="0"
         />
       </div>
     `

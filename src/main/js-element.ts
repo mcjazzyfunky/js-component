@@ -24,7 +24,7 @@ type Notifier = {
   notify(): void
 }
 
-type LifecycleType = 'mount' | 'unmount' | 'update'
+type LifecycleType = 'afterMount' | 'beforeUnmount' | 'afterUpdate'
 
 type PropConverter<T = any> = {
   fromPropToString(value: T): string | null
@@ -198,7 +198,7 @@ function element(params: {
           }
 
           propNameToP2AObj[propName] = conv!.fromPropToString
-          propNameToA2PObj[propName] = conv!.fromPropToString
+          propNameToA2PObj[propName] = conv!.fromStringToProp
         }
       }
     }
@@ -256,13 +256,13 @@ function element(params: {
               updateRequested = false
               render()
               updateNotifier && updateNotifier.notify()
-              component.onUpdate()
+              component.afterUpdate()
             })
           },
 
-          addLifecyleTask(type: LifecycleType, task: Task) {
+          addLifecycleTask(type: LifecycleType, task: Task) {
             switch (type) {
-              case 'mount':
+              case 'afterMount':
                 if (!mountNotifier) {
                   mountNotifier = createNotifier()
                 }
@@ -270,7 +270,7 @@ function element(params: {
                 mountNotifier.subscribe(task)
                 break
 
-              case 'update':
+              case 'afterUpdate':
                 if (!updateNotifier) {
                   updateNotifier = createNotifier()
                 }
@@ -278,7 +278,7 @@ function element(params: {
                 updateNotifier.subscribe(task)
                 break
 
-              case 'unmount':
+              case 'beforeUnmount':
                 if (!unmountNotifier) {
                   unmountNotifier = createNotifier()
                 }
@@ -292,18 +292,19 @@ function element(params: {
         const component = new componentClass()
         this.__component = component
         Object.assign(component, ctrl)
-        component.init()
+        component.init() // TODO
 
         this.connectedCallback = () => {
+          component.beforeMount() // TODO
           render()
           mounted = true
           mountNotifier && mountNotifier.notify()
-          component.onMount()
+          component.afterMount()
         }
 
         this.disconnectedCallback = () => {
           unmountNotifier && unmountNotifier.notify()
-          component.onUnmount()
+          component.beforeUnmount()
           container.innerHTML = ''
         }
       }
@@ -315,9 +316,7 @@ function element(params: {
       ) {
         const propName = attrNameToPropNameObj[attrName]
         const mapToProp = propNameToA2PObj[propName]
-        console.log(tagName, attrName, newValue)
-        ;(this.__component as any)[propName] = mapToProp(newValue)
-        this.__component.refresh()
+        ;(this as any)[propName] = mapToProp(newValue)
       }
 
       getAttribute(attrName: string) {
@@ -346,12 +345,10 @@ function element(params: {
       Object.defineProperty(CustomElement.prototype, propName, {
         enumerable: true,
         get(this: any) {
-          console.log(propName, 'getter', this.__component)
           return this.__component[propName]
         },
 
         set(this: any, value: any) {
-          console.log(propName, 'setter', this, this.__component)
           this.__component[propName] = value
           this.__component.refresh() // TODO
         }
@@ -369,33 +366,34 @@ const notImplementedError = new Error('Method not implemented/overridden')
 abstract class Component {
   getTagName(): string {
     // will be overriden by @element decorator
-    throw notImplementedError
+    throw new Error('Method "getTagName" not implemented/overridden')
   }
 
   getHost(): HTMLElement {
     // will be overriden by @element decorator
-    throw notImplementedError
+    throw new Error('Method "getHost" not implemented/overridden')
   }
 
   isMounted(): boolean {
     // will be overriden by @element decorator
-    throw notImplementedError
+    throw new Error('Method "isMounted" not implemented/overridden')
   }
 
   refresh() {
     // will be overriden by @element decorator
-    throw notImplementedError
+    throw new Error('Method "refresh" not implemented/overridden')
   }
 
   addLifecycleTask(type: LifecycleType, task: Task) {
     // will be overriden by @element decorator
-    throw notImplementedError
+    throw new Error('Method "addLifecycleTask" not implemented/overridden')
   }
 
   init() {}
-  onMount() {}
-  onUpdate() {}
-  onUnmount() {}
+  beforeMount() {}
+  afterMount() {}
+  afterUpdate() {}
+  beforeUnmount() {}
   render() {}
 }
 

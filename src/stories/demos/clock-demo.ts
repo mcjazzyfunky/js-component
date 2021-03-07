@@ -4,9 +4,14 @@ import { bind, element, html, prop, state, Component } from 'js-element'
   tag: 'clock-demo'
 })
 class ClockDemo extends Component {
+  @prop({ attr: String })
   label = 'Current time'
 
-  private getTime = useTimer(this, 1000)
+  getTime: () => Date = null as any // TODO
+
+  beforeMount() {
+    this.getTime = useTimer(this, 1000) // TODO
+  }
 
   render() {
     return html`
@@ -19,14 +24,14 @@ function useTimer(component: Component, milliseconds: number) {
   let currentTime = new Date()
   let intervalId: any = null
 
-  component.addLifecycleTask('mount', () => {
+  component.addLifecycleTask('afterMount', () => {
     intervalId = setInterval(() => {
       currentTime = new Date()
       component.refresh()
     }, milliseconds)
   })
 
-  component.addLifecycleTask('unmount', () => {
+  component.addLifecycleTask('beforeUnmount', () => {
     clearInterval(intervalId)
   })
 
