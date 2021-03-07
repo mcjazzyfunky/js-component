@@ -4,6 +4,10 @@ import { bind, element, html, prop, state, Component } from 'js-element'
   tag: 'simple-counter'
 })
 class SimpleCounter extends Component {
+  @prop({ attr: Number })
+  initialCount = 0
+
+  @prop({ attr: String })
   label = 'Counter'
 
   @state
@@ -12,6 +16,22 @@ class SimpleCounter extends Component {
   @bind
   private onClick() {
     this.count++
+  }
+
+  init() {
+    this.count = this.initialCount
+  }
+
+  onMount() {
+    console.log(`Mounted "${this.getTagName()}"`)
+  }
+
+  onUpdate() {
+    console.log(`Updated "${this.getTagName()}"`)
+  }
+
+  onUnmount() {
+    console.log(`Unmounting "${this.getTagName()}"`)
   }
 
   render() {
@@ -29,8 +49,11 @@ export default class SimpleCounterDemo extends Component {
   render() {
     return html`
       <div>
-        <simple-counter .label="Counter 1" />
-        <simple-counter .label="Counter 2" />
+        <simple-counter label="Counter 1" />
+        <simple-counter
+          label="Counter 2 (starting with 100)"
+          initialCount="0"
+        />
       </div>
     `
   }

@@ -7,21 +7,16 @@ export { bind, element, html, prop, state, svg, Component }
 
 // === types =========================================================
 
-type Content = any // TODO
-
 type ComponentConstructor = {
-  new (ctrl: Ctrl): Component
+  new (): Component
 }
 
-type PropMeta = {}
-type StateMeta = {}
-
-type ComponentMeta = {
-  props: Map<string, PropMeta>
-  states: Map<string, StateMeta>
-  methodsToBind: string[]
+type PropConfig = {
+  attr: StringConstructor | NumberConstructor | BooleanConstructor
+  reflect?: boolean
 }
 
+type PropConfigMap = Map<string, PropConfig | null>
 type Task = () => void
 
 type Notifier = {
@@ -31,17 +26,17 @@ type Notifier = {
 
 type LifecycleType = 'mount' | 'unmount' | 'update'
 
-type Ctrl = {
-  getTagName(): string
-  getHost(): HTMLElement
-  isMounted(): boolean
-  refresh(): void
-  addLifecyleTask(type: LifecycleType, task: Task): void
+type PropConverter<T = any> = {
+  fromPropToString(value: T): string | null
+  fromStringToProp(it: string | null): T
 }
 
 // === meta data =====================================================
 
-const componentMetaMap = new Map<ComponentConstructor, ComponentMeta>()
+const propConfigsByComponentClass = new Map<
+  ComponentConstructor,
+  PropConfigMap
+>()
 
 // === decorators ====================================================
 
@@ -50,10 +45,12 @@ function bind<T extends Function>(
   propertyKey: string,
   descriptor: TypedPropertyDescriptor<T>
 ): TypedPropertyDescriptor<T> {
-  if (!descriptor || typeof descriptor.value !== 'function') {
-    throw new TypeError(
-      `Only methods can be decorated with @callback. <${propertyKey}> is not a method!`
-    )
+  if (process.env.NODE_ENV === ('development' as string)) {
+    if (!descriptor || typeof descriptor.value !== 'function') {
+      throw new TypeError(
+        `Only methods can be decorated with @callback. <${propertyKey}> is not a method!`
+      )
+    }
   }
 
   return {
@@ -73,8 +70,38 @@ function bind<T extends Function>(
   }
 }
 
-function prop() {
-  // TODO
+function prop(component: Component, propName: string): void
+
+function prop(
+  propConfig: PropConfig
+): (component: Component, propName: string) => void
+
+function prop(arg1: any, arg2?: any): any {
+  const argc = arguments.length
+
+  if (argc == 1) {
+    return (proto: Component, propName: string) => {
+      processPropDecorator(proto, propName, arg1)
+    }
+  } else {
+    processPropDecorator(arg1, arg2)
+  }
+}
+
+function processPropDecorator(
+  proto: Component,
+  propName: string,
+  propConfig?: PropConfig
+) {
+  const componentClass = proto.constructor as ComponentConstructor
+  let propConfigsMap = propConfigsByComponentClass.get(componentClass)
+
+  if (!propConfigsMap) {
+    propConfigsMap = new Map()
+    propConfigsByComponentClass.set(componentClass, propConfigsMap)
+  }
+
+  propConfigsMap.set(propName, propConfig || null)
 }
 
 function state(target: Component, propertyKey: string): void {
@@ -112,26 +139,75 @@ function element(params: {
   tag: string
   styles?: string | string[]
   uses?: ComponentConstructor[]
-}): (constructor: ComponentConstructor) => void {
+}): (componentClass: ComponentConstructor) => void {
   const tagName = params.tag
 
   // will be used lazy in constructor
   let styles: string | null = null
 
-  return (ComponentClass) => {
+  return (componentClass) => {
+    const proto = componentClass.prototype
+
     if (customElements.get(tagName)) {
       console.clear()
       location.reload() // TODO!!!!
       return
     }
 
-    let metaMap = componentMetaMap.get(ComponentClass) || null
+    const propNames: string[] = []
+    const attrNames: string[] = []
+    const propNameToAttrNameObj: Record<string, string> = {}
+    const attrNameToPropNameObj: Record<string, string> = {}
 
-    if (metaMap) {
-      componentMetaMap.delete(ComponentClass)
+    const propNameToP2AObj: Record<
+      string,
+      (propValue: any) => string | null
+    > = {}
+
+    const propNameToA2PObj: Record<
+      string,
+      (attrValue: string | null) => any
+    > = {}
+
+    const propConfigsMap = propConfigsByComponentClass.get(componentClass)
+
+    if (propConfigsMap) {
+      for (const [propName, propConfig] of propConfigsMap.entries()) {
+        propNames.push(propName)
+
+        if (propConfig && propConfig.attr) {
+          const attrName = propToAttrName(propName)
+          let conv: PropConverter
+
+          attrNames.push(attrName)
+          propNameToAttrNameObj[propName] = attrName
+          attrNameToPropNameObj[attrName] = propName
+
+          switch (propConfig.attr) {
+            case String:
+              conv = stringPropConv
+              break
+
+            case Number:
+              conv = numberPropConv
+              break
+
+            case Boolean:
+              conv = booleanPropConv
+              break
+          }
+
+          propNameToP2AObj[propName] = conv!.fromPropToString
+          propNameToA2PObj[propName] = conv!.fromPropToString
+        }
+      }
     }
 
     class CustomElement extends HTMLElement {
+      private __component: Component
+
+      static observedAttributes = attrNames
+
       constructor() {
         super()
 
@@ -162,10 +238,9 @@ function element(params: {
 
         const render = () => {
           uhtmlRender(container, component.render())
-          mounted && updateNotifier && updateNotifier.notify()
         }
 
-        const ctrl: Ctrl = {
+        const ctrl = {
           getTagName: () => tagName,
           getHost: () => this,
           isMounted: () => mounted,
@@ -180,6 +255,8 @@ function element(params: {
             requestAnimationFrame(() => {
               updateRequested = false
               render()
+              updateNotifier && updateNotifier.notify()
+              component.onUpdate()
             })
           },
 
@@ -212,7 +289,9 @@ function element(params: {
           }
         }
 
-        const component = new ComponentClass(ctrl)
+        const component = new componentClass()
+        this.__component = component
+        Object.assign(component, ctrl)
         component.init()
 
         this.connectedCallback = () => {
@@ -229,6 +308,29 @@ function element(params: {
         }
       }
 
+      attributeChangedCallback(
+        attrName: string,
+        oldValue: string,
+        newValue: string
+      ) {
+        const propName = attrNameToPropNameObj[attrName]
+        const mapToProp = propNameToA2PObj[propName]
+        console.log(tagName, attrName, newValue)
+        ;(this.__component as any)[propName] = mapToProp(newValue)
+        this.__component.refresh()
+      }
+
+      getAttribute(attrName: string) {
+        if (!attrNameToPropNameObj.hasOwnProperty('attrName')) {
+          return super.getAttribute(attrName)
+        }
+
+        const propName = attrNameToPropNameObj[attrName]
+        const mapToAttr = propNameToA2PObj[propName]
+
+        return mapToAttr((this as any)[propName])
+      }
+
       connectedCallback() {
         // will be overridden in constructor
         this.connectedCallback()
@@ -240,42 +342,54 @@ function element(params: {
       }
     }
 
+    propNames.forEach((propName) => {
+      Object.defineProperty(CustomElement.prototype, propName, {
+        enumerable: true,
+        get(this: any) {
+          console.log(propName, 'getter', this.__component)
+          return this.__component[propName]
+        },
+
+        set(this: any, value: any) {
+          console.log(propName, 'setter', this, this.__component)
+          this.__component[propName] = value
+          this.__component.refresh() // TODO
+        }
+      })
+    })
+
     customElements.define(tagName, CustomElement)
   }
 }
 
 // === Component =====================================================
 
-class Component {
-  constructor(ctrl: Ctrl) {
-    this.getTagName = ctrl.getTagName
-    this.getHost = ctrl.getHost
-    this.isMounted = ctrl.isMounted
-    this.refresh = ctrl.refresh
-    this.addLifecycleTask = ctrl.addLifecyleTask
-  }
+const notImplementedError = new Error('Method not implemented/overridden')
 
-  // @ts-ignore
+abstract class Component {
   getTagName(): string {
-    // will be overriden in constructor
+    // will be overriden by @element decorator
+    throw notImplementedError
   }
 
-  // @ts-ignore
   getHost(): HTMLElement {
-    // will be overriden in constructor
+    // will be overriden by @element decorator
+    throw notImplementedError
   }
 
-  // @ts-ignore
   isMounted(): boolean {
-    // will be overriden in constructor
+    // will be overriden by @element decorator
+    throw notImplementedError
   }
 
   refresh() {
-    // will be overidden in constructor
+    // will be overriden by @element decorator
+    throw notImplementedError
   }
 
   addLifecycleTask(type: LifecycleType, task: Task) {
-    // will be overidden in constructor
+    // will be overriden by @element decorator
+    throw notImplementedError
   }
 
   init() {}
@@ -302,3 +416,24 @@ function createNotifier(): Notifier {
 }
 
 // === helpers =======================================================
+
+function propToAttrName(propName: string) {
+  return propName.replace(/([a-z0-9]|(?=[A-Z]))([A-Z])/g, '$1-$2').toLowerCase()
+}
+
+// === prop converters ===============================================
+
+const stringPropConv = {
+  fromPropToString: (it: string) => it,
+  fromStringToProp: (it: string) => it
+}
+
+const numberPropConv = {
+  fromPropToString: (it: number) => String(it),
+  fromStringToProp: (it: string) => Number.parseFloat(it)
+}
+
+const booleanPropConv = {
+  fromPropToString: (it: boolean) => (it ? 'true' : 'false'),
+  fromStringToProp: (it: string) => (it === 'true' ? true : false)
+}
