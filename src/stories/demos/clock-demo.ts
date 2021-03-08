@@ -7,11 +7,7 @@ class ClockDemo extends Component {
   @prop({ attr: String })
   label = 'Current time'
 
-  getTime: () => Date = null as any // TODO
-
-  beforeMount() {
-    this.getTime = useTimer(this, 1000) // TODO
-  }
+  private getTime = useTimer(this, 1000)
 
   render() {
     return html`

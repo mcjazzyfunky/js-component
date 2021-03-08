@@ -4,10 +4,10 @@ import { bind, element, html, prop, state, Component } from 'js-element'
   tag: 'simple-counter'
 })
 class SimpleCounter extends Component {
-  @prop({ attr: Number })
+  @prop({ attr: Number, reflect: true })
   initialCount = 0
 
-  @prop({ attr: String })
+  @prop({ attr: String, reflect: true })
   label = 'Counter'
 
   @state
@@ -35,8 +35,6 @@ class SimpleCounter extends Component {
   }
 
   render() {
-    console.log(this.label, this.initialCount)
-
     return html`
       <button @click=${this.onClick}>${this.label}: ${this.count}</button>
     `

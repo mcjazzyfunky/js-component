@@ -11,8 +11,14 @@ type ComponentConstructor = {
   new (): Component
 }
 
+type AttrType =
+  | StringConstructor
+  | NumberConstructor
+  | BooleanConstructor
+  | PropConverter
+
 type PropConfig = {
-  attr: StringConstructor | NumberConstructor | BooleanConstructor
+  attr: AttrType
   reflect?: boolean
 }
 
@@ -30,6 +36,10 @@ type PropConverter<T = any> = {
   fromPropToString(value: T): string | null
   fromStringToProp(it: string | null): T
 }
+
+// === module variables =============================================
+
+let currentCtrl: any = null
 
 // === meta data =====================================================
 
@@ -154,54 +164,17 @@ function element(params: {
       return
     }
 
-    const propNames: string[] = []
-    const attrNames: string[] = []
-    const propNameToAttrNameObj: Record<string, string> = {}
-    const attrNameToPropNameObj: Record<string, string> = {}
-
-    const propNameToP2AObj: Record<
-      string,
-      (propValue: any) => string | null
-    > = {}
-
-    const propNameToA2PObj: Record<
-      string,
-      (attrValue: string | null) => any
-    > = {}
-
-    const propConfigsMap = propConfigsByComponentClass.get(componentClass)
-
-    if (propConfigsMap) {
-      for (const [propName, propConfig] of propConfigsMap.entries()) {
-        propNames.push(propName)
-
-        if (propConfig && propConfig.attr) {
-          const attrName = propToAttrName(propName)
-          let conv: PropConverter
-
-          attrNames.push(attrName)
-          propNameToAttrNameObj[propName] = attrName
-          attrNameToPropNameObj[attrName] = propName
-
-          switch (propConfig.attr) {
-            case String:
-              conv = stringPropConv
-              break
-
-            case Number:
-              conv = numberPropConv
-              break
-
-            case Boolean:
-              conv = booleanPropConv
-              break
-          }
-
-          propNameToP2AObj[propName] = conv!.fromPropToString
-          propNameToA2PObj[propName] = conv!.fromStringToProp
-        }
-      }
-    }
+    const {
+      propNames,
+      attrNames,
+      propNameToAttrNameObj,
+      attrNameToPropNameObj,
+      propNameToP2AObj,
+      propNameToA2PObj,
+      reflectedPropsObj
+    } = getPropsMetaByPropConfigMap(
+      propConfigsByComponentClass.get(componentClass)
+    )
 
     class CustomElement extends HTMLElement {
       private __component: Component
@@ -289,9 +262,16 @@ function element(params: {
           }
         }
 
-        const component = new componentClass()
+        let component: Component
+
+        try {
+          currentCtrl = ctrl
+          component = new componentClass()
+        } finally {
+          currentCtrl = null
+        }
+
         this.__component = component
-        Object.assign(component, ctrl)
         component.init() // TODO
 
         this.connectedCallback = () => {
@@ -311,12 +291,13 @@ function element(params: {
 
       attributeChangedCallback(
         attrName: string,
-        oldValue: string,
-        newValue: string
+        oldAttrValue: string,
+        newAttrValue: string
       ) {
         const propName = attrNameToPropNameObj[attrName]
         const mapToProp = propNameToA2PObj[propName]
-        ;(this as any)[propName] = mapToProp(newValue)
+        const newPropValue = mapToProp(newAttrValue)
+        ;(this as any)[propName] = newPropValue
       }
 
       getAttribute(attrName: string) {
@@ -348,6 +329,7 @@ function element(params: {
           return this.__component[propName]
         },
 
+        // TODO
         set(this: any, value: any) {
           this.__component[propName] = value
           this.__component.refresh() // TODO
@@ -364,6 +346,13 @@ function element(params: {
 const notImplementedError = new Error('Method not implemented/overridden')
 
 abstract class Component {
+  constructor() {
+    if (currentCtrl) {
+      Object.assign(this, currentCtrl)
+      currentCtrl = null
+    }
+  }
+
   getTagName(): string {
     // will be overriden by @element decorator
     throw new Error('Method "getTagName" not implemented/overridden')
@@ -415,23 +404,75 @@ function createNotifier(): Notifier {
 
 // === helpers =======================================================
 
-function propToAttrName(propName: string) {
+function convertPropNameToAttrName(propName: string) {
   return propName.replace(/([a-z0-9]|(?=[A-Z]))([A-Z])/g, '$1-$2').toLowerCase()
+}
+
+function getPropConvByAttrType(attrType: AttrType): PropConverter {
+  switch (attrType) {
+    case String:
+      return stringPropConverter
+
+    case Number:
+      return numberPropConverter
+
+    case Boolean:
+      return booleanPropConverter
+
+    default:
+      return attrType as PropConverter
+  }
+}
+
+function getPropsMetaByPropConfigMap(propConfigsMap?: PropConfigMap) {
+  const ret = {
+    propNames: [] as string[],
+    attrNames: [] as string[],
+    propNameToAttrNameObj: {} as Record<string, string>,
+    attrNameToPropNameObj: {} as Record<string, string>,
+    propNameToP2AObj: {} as Record<string, (propValue: any) => string | null>,
+    propNameToA2PObj: {} as Record<string, (attrValue: string | null) => any>,
+    reflectedPropsObj: {} as Record<string, true>
+  }
+
+  if (propConfigsMap) {
+    for (const [propName, propConfig] of propConfigsMap.entries()) {
+      ret.propNames.push(propName)
+
+      if (propConfig && propConfig.attr) {
+        const attrName = convertPropNameToAttrName(propName)
+        let conv = getPropConvByAttrType(propConfig.attr)
+
+        ret.attrNames.push(attrName)
+        ret.propNameToAttrNameObj[propName] = attrName
+        ret.attrNameToPropNameObj[attrName] = propName
+
+        if (propConfig.reflect) {
+          ret.reflectedPropsObj[propName] = true
+        }
+
+        ret.propNameToP2AObj[propName] = conv.fromPropToString
+        ret.propNameToA2PObj[propName] = conv.fromStringToProp
+      }
+    }
+  }
+
+  return ret
 }
 
 // === prop converters ===============================================
 
-const stringPropConv = {
+const stringPropConverter: PropConverter<string> = {
   fromPropToString: (it: string) => it,
   fromStringToProp: (it: string) => it
 }
 
-const numberPropConv = {
+const numberPropConverter: PropConverter<number> = {
   fromPropToString: (it: number) => String(it),
   fromStringToProp: (it: string) => Number.parseFloat(it)
 }
 
-const booleanPropConv = {
+const booleanPropConverter: PropConverter<boolean> = {
   fromPropToString: (it: boolean) => (it ? 'true' : 'false'),
   fromStringToProp: (it: string) => (it === 'true' ? true : false)
 }
