@@ -37,9 +37,17 @@ type PropConverter<T = any> = {
   fromStringToProp(it: string | null): T
 }
 
+type Ctrl = {
+  getTagName(): string
+  getHost(): HTMLElement
+  isMounted(): boolean
+  refresh(): void
+  addLifecycleTask(type: LifecycleType, task: Task): void
+}
+
 // === module variables =============================================
 
-let currentCtrl: any = null
+let currentCtrl: Ctrl | null = null
 
 // === meta data =====================================================
 
@@ -213,7 +221,7 @@ function element(params: {
           uhtmlRender(container, component.render())
         }
 
-        const ctrl = {
+        const ctrl: Ctrl = {
           getTagName: () => tagName,
           getHost: () => this,
           isMounted: () => mounted,
@@ -343,39 +351,39 @@ function element(params: {
 
 // === Component =====================================================
 
-const notImplementedError = new Error('Method not implemented/overridden')
-
 abstract class Component {
+  private __ctrl: Ctrl
+
   constructor() {
-    if (currentCtrl) {
-      Object.assign(this, currentCtrl)
-      currentCtrl = null
+    if (!currentCtrl) {
+      throw new Error(
+        'Class "Component" cannot be explicitly instantiated - ' +
+          'use decorator "@element" instead'
+      )
     }
+
+    this.__ctrl = currentCtrl
+    currentCtrl = null
   }
 
   getTagName(): string {
-    // will be overriden by @element decorator
-    throw new Error('Method "getTagName" not implemented/overridden')
+    return this.__ctrl.getTagName()
   }
 
   getHost(): HTMLElement {
-    // will be overriden by @element decorator
-    throw new Error('Method "getHost" not implemented/overridden')
+    return this.__ctrl.getHost()
   }
 
   isMounted(): boolean {
-    // will be overriden by @element decorator
-    throw new Error('Method "isMounted" not implemented/overridden')
+    return this.__ctrl.isMounted()
   }
 
   refresh() {
-    // will be overriden by @element decorator
-    throw new Error('Method "refresh" not implemented/overridden')
+    this.__ctrl.refresh()
   }
 
   addLifecycleTask(type: LifecycleType, task: Task) {
-    // will be overriden by @element decorator
-    throw new Error('Method "addLifecycleTask" not implemented/overridden')
+    this.__ctrl.addLifecycleTask(type, task)
   }
 
   init() {}
