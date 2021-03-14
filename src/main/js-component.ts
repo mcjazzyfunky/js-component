@@ -213,10 +213,8 @@ function element(params: {
   let styles: string | null = null
 
   return (componentClass) => {
-    const proto = componentClass.prototype
     const propInfoMap = propInfoMapByClass.get(componentClass)
     const attrInfoMap = attrInfoMapByClass.get(componentClass)
-
     const attrNames = attrInfoMap ? Array.from(attrInfoMap.keys()) : []
 
     if (customElements.get(tagName)) {
@@ -249,6 +247,7 @@ function element(params: {
 
         const shadowRoot = this.shadowRoot!
         const container = styles ? document.createElement('span') : shadowRoot
+        const render = () => uhtmlRender(container, component.render())
 
         if (styles) {
           const styleElem = document.createElement('style')
@@ -256,10 +255,6 @@ function element(params: {
           styleElem.appendChild(document.createTextNode(styles))
           shadowRoot.append(styleElem)
           shadowRoot.append(container)
-        }
-
-        const render = () => {
-          uhtmlRender(container, component.render())
         }
 
         const ctrl: Ctrl = {
