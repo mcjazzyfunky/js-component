@@ -19,7 +19,7 @@
     "typeRoots": ["node_modules/@types"],
     "types": ["node", "mocha", "chai"]
   },
-  "files": ["./src/main/js-element.ts"],
+  "files": ["./src/main/js-component.ts"],
   "include": ["./src/main/**/*.*"],
   "exclude": ["node_modules"]
 }

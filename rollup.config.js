@@ -25,14 +25,14 @@ function createConfig(pkg, moduleFormat, productive) {
   return {
     input:
       pkg === 'root'
-        ? 'src/main/js-element.ts'
-        : `src/main/js-element-${pkg}.ts`,
+        ? 'src/main/js-component.ts'
+        : `src/main/js-component-${pkg}.ts`,
 
     output: {
       file:
         pkg === 'root'
-          ? `dist/js-element.${moduleFormat}.${env}.js`
-          : `dist/js-element-${pkg}.${moduleFormat}.${env}.js`,
+          ? `dist/js-component.${moduleFormat}.${env}.js`
+          : `dist/js-component-${pkg}.${moduleFormat}.${env}.js`,
 
       format: moduleFormat,
       sourcemap: false, // productive ? false : 'inline', // TODO

@@ -1,4 +1,4 @@
-import { bind, element, html, prop, state, Component } from 'js-element'
+import { bind, element, html, prop, state, Component } from 'js-component'
 
 @element({
   tag: 'clock-demo'

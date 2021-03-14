@@ -13,7 +13,10 @@ module.exports = ({ config }) => {
 
   const alias = (config.resolve && config.resolve.alias) || {}
 
-  alias['js-element$'] = path.resolve(__dirname, '../src/main/js-element.ts')
+  alias['js-component$'] = path.resolve(
+    __dirname,
+    '../src/main/js-component.ts'
+  )
 
   config.resolve.alias = alias
   config.resolve.extensions.push('.ts')

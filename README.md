@@ -1,4 +1,4 @@
-# js-element
+# js-component
 
 A R&D project to evaluate a class-based solution to develop custom elements.
 
@@ -11,7 +11,7 @@ Project is in an early state ... currently no plans to use it in production.
 ### Example 1
 
 ```tsx
-import { bind, element, html, state, Component } from 'js-element'
+import { bind, element, html, state, Component } from 'js-component'
 import counterStyles from './styles/counter.scss'
 
 @element({

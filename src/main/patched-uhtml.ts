@@ -1,4 +1,5 @@
 // Patched version of uhtml 2.6.0
+// @ts-nocheck
 /* eslint-disable */
 
 export const { html, render, svg, Hole } = (function (exports) {

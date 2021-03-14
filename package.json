@@ -1,69 +1,70 @@
 {
-  "name": "js-element",
+  "name": "js-component",
   "version": "0.0.1",
   "description": "",
+  "license": "LGPL-3.0",
   "main": "./index.js",
-  "module": "./dist/js-element.esm.production.js",
-  "types": "dist/types/js-element.d.ts",
+  "module": "./dist/js-component.esm.production.js",
+  "types": "dist/types/js-component.d.ts",
   "exports": {
     ".": {
       "development": {
-        "browser": "./dist/js-element.umd.development.js",
-        "umd": "./dist/js-element.umd.development.js",
-        "import": "./dist/js-element.esm.development.js",
-        "require": "./dist/js-element.cjs.development.js"
+        "browser": "./dist/js-component.umd.development.js",
+        "umd": "./dist/js-component.umd.development.js",
+        "import": "./dist/js-component.esm.development.js",
+        "require": "./dist/js-component.cjs.development.js"
       },
       "production": {
-        "browser": "./dist/js-element.umd.production.js",
-        "umd": "./dist/js-element.umd.production.js",
-        "import": "./dist/js-element.esm.production.js",
-        "require": "./dist/js-element.cjs.production.js"
+        "browser": "./dist/js-component.umd.production.js",
+        "umd": "./dist/js-component.umd.production.js",
+        "import": "./dist/js-component.esm.production.js",
+        "require": "./dist/js-component.cjs.production.js"
       },
       "default": {
-        "browser": "./dist/js-element.umd.production.js",
-        "umd": "./dist/js-element.umd.production.js",
-        "import": "./dist/js-element.esm.production.js",
-        "require": "./dist/js-element.cjs.production.js"
+        "browser": "./dist/js-component.umd.production.js",
+        "umd": "./dist/js-component.umd.production.js",
+        "import": "./dist/js-component.esm.production.js",
+        "require": "./dist/js-component.cjs.production.js"
       }
     },
     "./hooks": {
       "development": {
-        "browser": "./dist/js-element-hooks.umd.development.js",
-        "umd": "./dist/js-element-hooks.umd.development.js",
-        "import": "./dist/js-element-hooks.esm.development.js",
-        "require": "./dist/js-element-hooks.cjs.development.js"
+        "browser": "./dist/js-component-hooks.umd.development.js",
+        "umd": "./dist/js-component-hooks.umd.development.js",
+        "import": "./dist/js-component-hooks.esm.development.js",
+        "require": "./dist/js-component-hooks.cjs.development.js"
       },
       "production": {
-        "browser": "./dist/js-element-hooks.umd.production.js",
-        "umd": "./dist/js-element-hooks.umd.production.js",
-        "import": "./dist/js-element-hooks.esm.production.js",
-        "require": "./dist/js-element-hooks.cjs.production.js"
+        "browser": "./dist/js-component-hooks.umd.production.js",
+        "umd": "./dist/js-component-hooks.umd.production.js",
+        "import": "./dist/js-component-hooks.esm.production.js",
+        "require": "./dist/js-component-hooks.cjs.production.js"
       },
       "default": {
-        "browser": "./dist/js-element-hooks.umd.production.js",
-        "umd": "./dist/js-element-hooks.umd.production.js",
-        "import": "./dist/js-element-hooks.esm.production.js",
-        "require": "./dist/js-element-hooks.cjs.production.js"
+        "browser": "./dist/js-component-hooks.umd.production.js",
+        "umd": "./dist/js-component-hooks.umd.production.js",
+        "import": "./dist/js-component-hooks.esm.production.js",
+        "require": "./dist/js-component-hooks.cjs.production.js"
       }
     },
     "./utils": {
       "development": {
-        "browser": "./dist/js-element-utils.umd.development.js",
-        "umd": "./dist/js-element-utils.umd.development.js",
-        "import": "./dist/js-element-utils.esm.development.js",
-        "require": "./dist/js-element-utils.cjs.development.js"
+        "browser": "./dist/js-component-utils.umd.development.js",
+        "umd": "./dist/js-component-utils.umd.development.js",
+        "import": "./dist/js-component-utils.esm.development.js",
+        "require": "./dist/js-component-utils.cjs.development.js"
       },
       "production": {
-        "browser": "./dist/js-element-utils.umd.production.js",
-        "umd": "./dist/js-element-utils.umd.production.js",
-        "import": "./dist/js-element-utils.esm.production.js",
-        "require": "./dist/js-element-utils.cjs.production.js"
+        "browser": "./dist/js-component-utils.umd.production.js",
+        "umd": "./dist/js-component-utils.umd.production.js",
+        "import": "./dist/js-component-utils.esm.production.js",
+        "require": "./dist/js-component-utils.cjs.production.js"
       },
       "default": {
-        "browser": "./dist/js-element-utils.umd.production.js",
-        "umd": "./dist/js-element-utils.umd.production.js",
-        "import": "./dist/js-element-utils.esm.production.js",
-        "require": "./dist/js-element-utils.cjs.production.js"
+        "browser": "./dist/js-component-utils.umd.production.js",
+        "umd": "./dist/js-component-utils.umd.production.js",
+        "import": "./dist/js-component-utils.esm.production.js",
+        "require": "./dist/js-component-utils.cjs.production.js"
       }
     },
     "./package.json": "./package.json",
