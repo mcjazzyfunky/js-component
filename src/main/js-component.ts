@@ -2,7 +2,7 @@ import { html, render as uhtmlRender, svg } from './patched-uhtml'
 
 // === exports =======================================================
 
-export { bind, element, html, prop, state, svg, Component }
+export { bind, element, html, method, prop, ref, state, svg, Component }
 
 // === types =========================================================
 
@@ -52,17 +52,14 @@ type Ctrl = {
   addLifecycleTask(type: LifecycleType, task: Task): void
 }
 
-type Class<T = any> = {
-  new (...args: any[]): T
-}
-
 // === module variables =============================================
 
 let currentCtrl: Ctrl | null = null
-
-// === meta data =====================================================
-
-const propInfoMapByClass: Map<Class, Map<string, PropInfo>> = new Map()
+const propInfoMapByClass = new Map<
+  ComponentConstructor,
+  Map<string, PropInfo>
+>()
+const methodNamesByClass = new Map<ComponentConstructor, Set<string>>()
 
 // === decorators ====================================================
 
@@ -167,6 +164,17 @@ function state(target: Component, propertyKey: string): void {
       enhanceComponent(this, value)
     }
   })
+}
+
+function method(proto: Component, methodName: string) {
+  let methodNames = methodNamesByClass.get((proto as any).constructor)
+
+  if (!methodNames) {
+    methodNames = new Set()
+    methodNamesByClass.set((proto as any).constructor, methodNames)
+  }
+
+  methodNames.add(methodName)
 }
 
 function element(params: {
@@ -352,7 +360,23 @@ function element(params: {
       }
     }
 
+    if (methodNamesByClass.has(componentClass)) {
+      for (const methodName of methodNamesByClass.get(componentClass)!) {
+        ;(CustomElement.prototype as any)[methodName] = function (this: any) {
+          return this.__component[methodName]()
+        }
+      }
+    }
+
     customElements.define(tagName, CustomElement)
+  }
+}
+
+// === other API =====================================================
+
+function ref<T>(value: T): { current: T | undefined } {
+  return {
+    current: value
   }
 }
 

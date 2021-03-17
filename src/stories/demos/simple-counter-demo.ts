@@ -1,4 +1,13 @@
-import { bind, element, html, prop, state, Component } from 'js-component'
+import {
+  bind,
+  element,
+  html,
+  prop,
+  ref,
+  state,
+  Component,
+  method
+} from 'js-component'
 
 @element({
   tag: 'simple-counter'
@@ -10,6 +19,11 @@ class SimpleCounter extends Component {
   @prop({ attr: String, reflect: true })
   label = 'Counter'
 
+  @method
+  reset() {
+    this.count = this.initialCount
+  }
+
   @state
   private count = 0
 
@@ -19,7 +33,7 @@ class SimpleCounter extends Component {
   }
 
   beforeMount() {
-    this.count = this.initialCount
+    this.reset()
   }
 
   afterMount() {
@@ -46,10 +60,19 @@ class SimpleCounter extends Component {
   uses: [SimpleCounter]
 })
 export default class SimpleCounterDemo extends Component {
+  private counterRef = ref(null)
+
+  @bind
+  onReset() {
+    ;(this.counterRef.current as any).reset()
+  }
+
   render() {
     return html`
       <div>
-        <simple-counter label="Counter 1" />
+        <simple-counter ref=${this.counterRef} label="Counter 1" />
+        <button @click=${this.onReset}>Reset</button>
+        <hr />
         <simple-counter
           initial-count="100"
           label="Counter 2 (starting with 100)"
