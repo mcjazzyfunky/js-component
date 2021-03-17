@@ -181,21 +181,14 @@ function element(params: {
   tag: string
   styles?: string | string[]
   uses?: ComponentConstructor[]
+  slots?: string[]
 }): (componentClass: ComponentConstructor) => void {
   let styles: string | null = null // will be used lazy in constructor
   const tagName = params.tag
 
   return (componentClass) => {
     const propInfoMap = propInfoMapByClass.get(componentClass)
-
-    const attrInfoMap =
-      propInfoMap &&
-      new Map(
-        Array.from(propInfoMap.values()).flatMap((it) =>
-          it.hasAttr ? [[it.attrName, it]] : []
-        )
-      )
-
+    const attrInfoMap = propInfoMapToAttrInfoMap(propInfoMap)
     const attrNames = !attrInfoMap ? [] : Array.from(attrInfoMap.keys())
 
     if (customElements.get(tagName)) {
@@ -211,13 +204,7 @@ function element(params: {
 
       constructor() {
         super()
-
-        if (styles === null) {
-          styles = params.styles
-            ? Array.from(params.styles).join('\n\n============\n\n')
-            : ''
-        }
-
+        styles === null || (styles = concatStyles(params.styles))
         this.attachShadow({ mode: 'open' })
 
         let mounted = false
@@ -232,10 +219,8 @@ function element(params: {
 
         if (styles) {
           const styleElem = document.createElement('style')
-
-          styleElem.appendChild(document.createTextNode(styles))
-          shadowRoot.append(styleElem)
-          shadowRoot.append(container)
+          styleElem.append(document.createTextNode(styles))
+          shadowRoot.append(styleElem, container)
         }
 
         const ctrl: Ctrl = {
@@ -261,26 +246,17 @@ function element(params: {
           addLifecycleTask(type: LifecycleType, task: Task) {
             switch (type) {
               case 'afterMount':
-                if (!mountNotifier) {
-                  mountNotifier = createNotifier()
-                }
-
+                mountNotifier || (mountNotifier = createNotifier())
                 mountNotifier.subscribe(task)
                 break
 
               case 'afterUpdate':
-                if (!updateNotifier) {
-                  updateNotifier = createNotifier()
-                }
-
+                updateNotifier || (updateNotifier = createNotifier())
                 updateNotifier.subscribe(task)
                 break
 
               case 'beforeUnmount':
-                if (!unmountNotifier) {
-                  unmountNotifier = createNotifier()
-                }
-
+                unmountNotifier || (unmountNotifier = createNotifier())
                 unmountNotifier.subscribe(task)
                 break
             }
@@ -291,12 +267,11 @@ function element(params: {
 
         try {
           currentCtrl = ctrl
-          component = new componentClass()
+          this.__component = component = new componentClass()
         } finally {
           currentCtrl = null
         }
 
-        this.__component = component
         component.init() // TODO
 
         this.connectedCallback = () => {
@@ -343,31 +318,8 @@ function element(params: {
       }
     }
 
-    if (propInfoMap) {
-      for (const propName of propInfoMap.keys()) {
-        Object.defineProperty(CustomElement.prototype, propName, {
-          enumerable: true,
-          get(this: any) {
-            return this.__component[propName]
-          },
-
-          // TODO
-          set(this: any, value: any) {
-            this.__component[propName] = value
-            this.__component.refresh() // TODO
-          }
-        })
-      }
-    }
-
-    if (methodNamesByClass.has(componentClass)) {
-      for (const methodName of methodNamesByClass.get(componentClass)!) {
-        ;(CustomElement.prototype as any)[methodName] = function (this: any) {
-          return this.__component[methodName]()
-        }
-      }
-    }
-
+    addProps(CustomElement.prototype, propInfoMap?.keys())
+    addMethods(CustomElement.prototype, methodNamesByClass.get(componentClass))
     customElements.define(tagName, CustomElement)
   }
 }
@@ -433,13 +385,8 @@ function createNotifier(): Notifier {
   const subscribers: (() => void)[] = []
 
   return {
-    subscribe(subscriber: () => void) {
-      subscribers.push(subscriber)
-    },
-
-    notify() {
-      subscribers.forEach((subscriber) => subscriber())
-    }
+    subscribe: (subscriber: () => void) => void subscribers.push(subscriber),
+    notify: () => subscribers.forEach((subscriber) => subscriber())
   }
 }
 
@@ -462,6 +409,50 @@ function getPropConv(attrType: AttrType): PropConverter {
 
     default:
       return attrType as PropConverter
+  }
+}
+
+function propInfoMapToAttrInfoMap(propInfoMap?: Map<string, PropInfo>) {
+  return (
+    propInfoMap &&
+    new Map(
+      Array.from(propInfoMap.values()).flatMap((it) =>
+        it.hasAttr ? [[it.attrName, it]] : []
+      )
+    )
+  )
+}
+
+function concatStyles(styles: string | string[] | undefined) {
+  return styles ? Array.from(styles).join('\n\n============\n\n') : ''
+}
+
+function addProps(proto: HTMLElement, propNames?: Iterable<string>) {
+  if (propNames) {
+    for (const propName of propNames) {
+      Object.defineProperty(proto, propName, {
+        enumerable: true,
+        get(this: any) {
+          return this.__component[propName]
+        },
+
+        // TODO
+        set(this: any, value: any) {
+          this.__component[propName] = value
+          this.__component.refresh() // TODO
+        }
+      })
+    }
+  }
+}
+
+function addMethods(proto: HTMLElement, methodNames?: Iterable<string>) {
+  if (methodNames) {
+    for (const methodName of methodNames) {
+      ;(proto as any)[methodName] = function (this: any) {
+        return this.__component[methodName]()
+      }
+    }
   }
 }
 
