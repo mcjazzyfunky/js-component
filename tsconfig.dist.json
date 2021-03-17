@@ -11,7 +11,7 @@
     "preserveConstEnums": true,
     "downlevelIteration": true,
     "sourceMap": false,
-    "lib": ["es7", "dom"],
+    "lib": ["ES2020", "dom"],
     "esModuleInterop": true,
     "baseUrl": ".",
     "skipLibCheck": true,

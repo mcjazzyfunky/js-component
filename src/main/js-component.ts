@@ -1,4 +1,3 @@
-// @ts-ignore
 import { html, render as uhtmlRender, svg } from './patched-uhtml'
 
 // === exports =======================================================
@@ -17,11 +16,6 @@ type AttrType =
   | BooleanConstructor
   | PropConverter
 
-type PropConfig = {
-  attr: AttrType
-  reflect?: boolean
-}
-
 type Task = () => void
 
 type Notifier = {
@@ -38,20 +32,17 @@ type PropConverter<T = any> = {
 
 type PropInfo =
   | {
+      propName: string
       hasAttr: false
     }
   | {
+      propName: string
       hasAttr: true
       attrName: string
       reflect: boolean
       fromPropToAttr: (value: any) => string | null
+      fromAttrToProp: (value: string | null) => any
     }
-
-type AttrInfo = {
-  propName: string
-  reflect: boolean
-  fromAttrToProp: (value: string | null) => any
-}
 
 type Ctrl = {
   getTagName(): string
@@ -72,7 +63,6 @@ let currentCtrl: Ctrl | null = null
 // === meta data =====================================================
 
 const propInfoMapByClass: Map<Class, Map<string, PropInfo>> = new Map()
-const attrInfoMapByClass: Map<Class, Map<string, AttrInfo>> = new Map()
 
 // === decorators ====================================================
 
@@ -108,64 +98,46 @@ function bind<T extends Function>(
 
 function prop(component: Component, propName: string): void
 
-function prop(
-  propConfig: PropConfig
-): (component: Component, propName: string) => void
+function prop(propConfig: {
+  attr: AttrType
+  reflect?: boolean
+}): (component: Component, propName: string) => void
 
 function prop(arg1: any, arg2?: any): any {
-  const argc = arguments.length
-
-  if (argc == 1) {
-    return (proto: Component, propName: string) => {
-      processPropDecorator(proto, propName, arg1)
-    }
-  } else {
-    processPropDecorator(arg1, arg2)
-  }
+  return arguments.length !== 1
+    ? processPropDecorator(arg1, arg2)
+    : (proto: Component, propName: string) =>
+        processPropDecorator(proto, propName, arg1)
 }
 
 function processPropDecorator(
   proto: Component,
   propName: string,
-  propConfig?: PropConfig
-) {
+  propConfig?: { attr: AttrType; reflect?: boolean }
+): void {
   const componentClass = proto.constructor as ComponentConstructor
   const hasAttr = !!(propConfig && propConfig.attr)
   let propInfoMap = propInfoMapByClass.get(componentClass)
-  let attrInfoMap = attrInfoMapByClass.get(componentClass)
 
   if (!propInfoMap) {
     propInfoMap = new Map()
     propInfoMapByClass.set(componentClass, propInfoMap)
-
-    if (hasAttr) {
-      attrInfoMap = new Map()
-      attrInfoMapByClass.set(componentClass, attrInfoMap)
-    }
   }
 
   if (!hasAttr) {
     propInfoMap.set(propName, {
+      propName,
       hasAttr
     })
   } else {
-    const attrName = convertPropNameToAttrName(propName)
-    const reflect = !!propConfig?.reflect
-
-    const { fromPropToAttr, fromAttrToProp } = getPropConvByAttrType(
-      propConfig!.attr
-    )
+    const { fromPropToAttr, fromAttrToProp } = getPropConv(propConfig!.attr)
 
     propInfoMap.set(propName, {
-      hasAttr,
-      reflect,
-      attrName: attrName,
-      fromPropToAttr
-    })
-
-    attrInfoMap!.set(attrName, {
       propName,
-      reflect,
+      hasAttr,
+      reflect: !!propConfig?.reflect,
+      attrName: convertPropNameToAttrName(propName),
+      fromPropToAttr,
       fromAttrToProp
     })
   }
@@ -180,11 +152,7 @@ function state(target: Component, propertyKey: string): void {
     Object.defineProperty(component, propertyKey, {
       enumerable: true,
       get: () => value,
-
-      set: (newValue: any) => {
-        value = newValue
-        component.refresh()
-      }
+      set: (newValue: any) => void ((value = newValue), component.refresh())
     })
   }
 
@@ -193,7 +161,6 @@ function state(target: Component, propertyKey: string): void {
 
     get(this: any) {
       enhanceComponent(this)
-      // return undefined - just for documentation
     },
 
     set(this: any, value: any) {
@@ -207,19 +174,25 @@ function element(params: {
   styles?: string | string[]
   uses?: ComponentConstructor[]
 }): (componentClass: ComponentConstructor) => void {
+  let styles: string | null = null // will be used lazy in constructor
   const tagName = params.tag
-
-  // will be used lazy in constructor
-  let styles: string | null = null
 
   return (componentClass) => {
     const propInfoMap = propInfoMapByClass.get(componentClass)
-    const attrInfoMap = attrInfoMapByClass.get(componentClass)
-    const attrNames = attrInfoMap ? Array.from(attrInfoMap.keys()) : []
+
+    const attrInfoMap =
+      propInfoMap &&
+      new Map(
+        Array.from(propInfoMap.values()).flatMap((it) =>
+          it.hasAttr ? [[it.attrName, it]] : []
+        )
+      )
+
+    const attrNames = !attrInfoMap ? [] : Array.from(attrInfoMap.keys())
 
     if (customElements.get(tagName)) {
       console.clear()
-      location.reload() // TODO!!!!
+      location.reload() // TODO!!!!!!!!!!!!!!!
       return
     }
 
@@ -338,24 +311,17 @@ function element(params: {
         oldAttrValue: string,
         newAttrValue: string
       ) {
-        const attrInfo = attrInfoMap!.get(attrName)!
-        const propName = attrInfo?.propName
-        const mapToProp = attrInfo.fromAttrToProp
-        const newPropValue = mapToProp(newAttrValue)
-        ;(this as any)[propName] = newPropValue
+        const propInfo = attrInfoMap!.get(attrName)!
+        const newPropValue = (propInfo as any).fromAttrToProp(newAttrValue)
+        ;(this as any)[propInfo.propName] = newPropValue
       }
 
       getAttribute(attrName: string) {
-        const attrInfo = attrInfoMap?.get(attrName)
+        const propInfo = attrInfoMap?.get(attrName)
 
-        if (!attrInfo) {
-          return super.getAttribute(attrName)
-        }
-
-        const propName = attrInfo.propName
-        const mapToAttr = attrInfo.fromAttrToProp
-
-        return mapToAttr((this as any)[propName])
+        return propInfo
+          ? propInfo.fromAttrToProp((this as any)[propInfo.propName])
+          : super.getAttribute(attrName)
       }
 
       connectedCallback() {
@@ -370,7 +336,7 @@ function element(params: {
     }
 
     if (propInfoMap) {
-      for (const [propName, propInfo] of propInfoMap.entries()) {
+      for (const propName of propInfoMap.keys()) {
         Object.defineProperty(CustomElement.prototype, propName, {
           enumerable: true,
           get(this: any) {
@@ -396,14 +362,16 @@ abstract class Component {
   private __ctrl: Ctrl
 
   constructor() {
-    if (!currentCtrl) {
-      throw new Error(
-        'Class "Component" cannot be explicitly instantiated - ' +
-          'use decorator "@element" instead'
-      )
+    if (process.env.NODE_ENV === ('development' as string)) {
+      if (!currentCtrl) {
+        throw new Error(
+          'Class "Component" cannot be explicitly instantiated - ' +
+            'use decorator "@element" instead'
+        )
+      }
     }
 
-    this.__ctrl = currentCtrl
+    this.__ctrl = currentCtrl!
     currentCtrl = null
   }
 
@@ -457,7 +425,7 @@ function convertPropNameToAttrName(propName: string) {
   return propName.replace(/([a-z0-9]|(?=[A-Z]))([A-Z])/g, '$1-$2').toLowerCase()
 }
 
-function getPropConvByAttrType(attrType: AttrType): PropConverter {
+function getPropConv(attrType: AttrType): PropConverter {
   switch (attrType) {
     case String:
       return stringPropConverter
@@ -489,5 +457,3 @@ const booleanPropConverter: PropConverter<boolean> = {
   fromPropToAttr: (it: boolean) => (it ? 'true' : 'false'),
   fromAttrToProp: (it: string) => (it === 'true' ? true : false)
 }
-
-// ====================================================================

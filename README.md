@@ -16,7 +16,7 @@ import counterStyles from './styles/counter.scss'
 
 @element({
   tag: 'my-counter',
-  styles: [counterStyles]
+  styles: counterStyles
 })
 class Counter extends Component {
   @prop
