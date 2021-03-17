@@ -30,19 +30,19 @@ type PropConverter<T = any> = {
   fromAttrToProp(it: string | null): T
 }
 
-type PropInfo =
-  | {
-      propName: string
-      hasAttr: false
-    }
-  | {
-      propName: string
-      hasAttr: true
-      attrName: string
-      reflect: boolean
-      fromPropToAttr: (value: any) => string | null
-      fromAttrToProp: (value: string | null) => any
-    }
+type PropInfo = { propName: string; hasAttr: false } | AttrInfo
+
+type AttrInfo = {
+  propName: string
+  hasAttr: true
+  attrName: string
+  reflect: boolean
+  fromPropToAttr: (value: any) => string | null
+  fromAttrToProp: (value: string | null) => any
+}
+
+type PropInfoMap = Map<string, PropInfo>
+type AttrInfoMap = Map<string, AttrInfo>
 
 type Ctrl = {
   getTagName(): string
@@ -55,10 +55,7 @@ type Ctrl = {
 // === module variables =============================================
 
 let currentCtrl: Ctrl | null = null
-const propInfoMapByClass = new Map<
-  ComponentConstructor,
-  Map<string, PropInfo>
->()
+const propInfoMapByClass = new Map<ComponentConstructor, PropInfoMap>()
 const methodNamesByClass = new Map<ComponentConstructor, Set<string>>()
 
 // === decorators ====================================================
@@ -308,12 +305,12 @@ function element(params: {
       }
 
       connectedCallback() {
-        // will be overridden in constructor
+        // this seems to be needed / will be overridden in constructor
         this.connectedCallback()
       }
 
       disconnectedCallback() {
-        // will be overridden in constructor
+        // this seems to be needed / will be overridden in constructor
         this.disconnectedCallback()
       }
     }
@@ -412,15 +409,22 @@ function getPropConv(attrType: AttrType): PropConverter {
   }
 }
 
-function propInfoMapToAttrInfoMap(propInfoMap?: Map<string, PropInfo>) {
-  return (
-    propInfoMap &&
-    new Map(
-      Array.from(propInfoMap.values()).flatMap((it) =>
-        it.hasAttr ? [[it.attrName, it]] : []
-      )
-    )
-  )
+function propInfoMapToAttrInfoMap(
+  propInfoMap?: PropInfoMap
+): AttrInfoMap | null {
+  if (!propInfoMap) {
+    return null
+  }
+
+  const ret = new Map<string, AttrInfo>()
+
+  for (const propInfo of propInfoMap.values()) {
+    if (propInfo.hasAttr) {
+      ret.set(propInfo.attrName, propInfo)
+    }
+  }
+
+  return ret
 }
 
 function concatStyles(styles: string | string[] | undefined) {
