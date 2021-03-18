@@ -27,46 +27,6 @@
         "require": "./dist/js-component.cjs.production.js"
       }
     },
-    "./hooks": {
-      "development": {
-        "browser": "./dist/js-component-hooks.umd.development.js",
-        "umd": "./dist/js-component-hooks.umd.development.js",
-        "import": "./dist/js-component-hooks.esm.development.js",
-        "require": "./dist/js-component-hooks.cjs.development.js"
-      },
-      "production": {
-        "browser": "./dist/js-component-hooks.umd.production.js",
-        "umd": "./dist/js-component-hooks.umd.production.js",
-        "import": "./dist/js-component-hooks.esm.production.js",
-        "require": "./dist/js-component-hooks.cjs.production.js"
-      },
-      "default": {
-        "browser": "./dist/js-component-hooks.umd.production.js",
-        "umd": "./dist/js-component-hooks.umd.production.js",
-        "import": "./dist/js-component-hooks.esm.production.js",
-        "require": "./dist/js-component-hooks.cjs.production.js"
-      }
-    },
-    "./utils": {
-      "development": {
-        "browser": "./dist/js-component-utils.umd.development.js",
-        "umd": "./dist/js-component-utils.umd.development.js",
-        "import": "./dist/js-component-utils.esm.development.js",
-        "require": "./dist/js-component-utils.cjs.development.js"
-      },
-      "production": {
-        "browser": "./dist/js-component-utils.umd.production.js",
-        "umd": "./dist/js-component-utils.umd.production.js",
-        "import": "./dist/js-component-utils.esm.production.js",
-        "require": "./dist/js-component-utils.cjs.production.js"
-      },
-      "default": {
-        "browser": "./dist/js-component-utils.umd.production.js",
-        "umd": "./dist/js-component-utils.umd.production.js",
-        "import": "./dist/js-component-utils.esm.production.js",
-        "require": "./dist/js-component-utils.cjs.production.js"
-      }
-    },
     "./package.json": "./package.json",
     "./": "./"
   },

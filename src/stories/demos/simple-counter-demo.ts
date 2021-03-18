@@ -13,7 +13,7 @@ import {
   tag: 'simple-counter'
 })
 class SimpleCounter extends Component {
-  @prop({ attr: Number, reflect: true })
+  @prop({ attr: Number })
   initialCount = 0
 
   @prop({ attr: String })
@@ -70,13 +70,16 @@ export default class SimpleCounterDemo extends Component {
   render() {
     return html`
       <div>
-        <simple-counter ref=${this.counterRef} .label=${'Counter A'} />
+        <simple-counter
+          ref=${this.counterRef}
+          label="Counter A"
+        ></simple-counter>
         <button @click=${this.onReset}>Reset</button>
         <hr />
         <simple-counter
-          .initialCount=${100}
+          initial-count="100"
           label="Counter B (starting with 100)"
-        />
+        ></simple-counter>
       </div>
     `
   }

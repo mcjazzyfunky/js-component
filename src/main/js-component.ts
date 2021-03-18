@@ -1,4 +1,5 @@
-import { html, render as uhtmlRender, svg } from './patched-uhtml'
+import { html, render, svg } from './patched-uhtml'
+// import { html, svg, render } from 'lit-html'
 
 // === exports =======================================================
 
@@ -55,8 +56,8 @@ type Ctrl = {
 // === module variables =============================================
 
 let currentCtrl: Ctrl | null = null
-const propInfoMapByClass = new Map<ComponentConstructor, PropInfoMap>()
-const methodNamesByClass = new Map<ComponentConstructor, Set<string>>()
+const propInfoMapByClass = new WeakMap<ComponentConstructor, PropInfoMap>()
+const methodNamesByClass = new WeakMap<ComponentConstructor, Set<string>>()
 
 // === decorators ====================================================
 
@@ -212,7 +213,12 @@ function element(params: {
 
         const shadowRoot = this.shadowRoot!
         const container = styles ? document.createElement('span') : shadowRoot
-        const render = () => uhtmlRender(container, component.render())
+
+        // TODO - remove render library switch!!!!!!!!!!!!!
+        const updateContent =
+          render.length === 3
+            ? () => render(component.render(), container) // lit-html
+            : () => (render as any)(container, component.render()) // uthml
 
         if (styles) {
           const styleElem = document.createElement('style')
@@ -234,7 +240,7 @@ function element(params: {
 
             requestAnimationFrame(() => {
               updateRequested = false
-              render()
+              updateContent()
               updateNotifier && updateNotifier.notify()
               component.afterUpdate()
             })
@@ -273,7 +279,7 @@ function element(params: {
 
         this.connectedCallback = () => {
           component.beforeMount() // TODO
-          render()
+          updateContent()
           mounted = true
           mountNotifier && mountNotifier.notify()
           component.afterMount()
@@ -318,6 +324,8 @@ function element(params: {
     addProps(CustomElement.prototype, propInfoMap)
     addMethods(CustomElement.prototype, methodNamesByClass.get(componentClass))
     customElements.define(tagName, CustomElement)
+    propInfoMapByClass.delete(componentClass) // not needed any longer
+    methodNamesByClass.delete(componentClass) // not needed any longer
   }
 }
 
@@ -445,22 +453,17 @@ function addProps(proto: HTMLElement, propInfoMap?: PropInfoMap) {
         // TODO
         set(this: any, value: any) {
           this.__component[propName] = value
+          this.__component.refresh() // TODO
 
           if (propInfo.hasAttr && propInfo.reflect) {
             const attrValue = propInfo.fromPropToAttr(value)
 
             if (typeof attrValue === 'string') {
-              HTMLElement.prototype.setAttribute.call(
-                this,
-                propInfo.attrName,
-                attrValue
-              )
+              this.setAttribute(propInfo.attrName, attrValue)
             } else {
               this.removeAttribute(propInfo.attrName)
             }
           }
-
-          this.__component.refresh() // TODO
         }
       })
     }
