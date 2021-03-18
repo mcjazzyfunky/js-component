@@ -315,7 +315,7 @@ function element(params: {
       }
     }
 
-    addProps(CustomElement.prototype, propInfoMap?.keys())
+    addProps(CustomElement.prototype, propInfoMap)
     addMethods(CustomElement.prototype, methodNamesByClass.get(componentClass))
     customElements.define(tagName, CustomElement)
   }
@@ -431,9 +431,11 @@ function concatStyles(styles: string | string[] | undefined) {
   return styles ? Array.from(styles).join('\n\n============\n\n') : ''
 }
 
-function addProps(proto: HTMLElement, propNames?: Iterable<string>) {
-  if (propNames) {
-    for (const propName of propNames) {
+function addProps(proto: HTMLElement, propInfoMap?: PropInfoMap) {
+  if (propInfoMap) {
+    for (const propInfo of propInfoMap.values()) {
+      const propName = propInfo.propName
+
       Object.defineProperty(proto, propName, {
         enumerable: true,
         get(this: any) {
@@ -443,6 +445,21 @@ function addProps(proto: HTMLElement, propNames?: Iterable<string>) {
         // TODO
         set(this: any, value: any) {
           this.__component[propName] = value
+
+          if (propInfo.hasAttr && propInfo.reflect) {
+            const attrValue = propInfo.fromPropToAttr(value)
+
+            if (typeof attrValue === 'string') {
+              HTMLElement.prototype.setAttribute.call(
+                this,
+                propInfo.attrName,
+                attrValue
+              )
+            } else {
+              this.removeAttribute(propInfo.attrName)
+            }
+          }
+
           this.__component.refresh() // TODO
         }
       })
