@@ -56,6 +56,8 @@ type Ctrl = {
 // === module variables =============================================
 
 let currentCtrl: Ctrl | null = null
+// TODO: this `ignoreAttributeChange`flag is kinda ugly - change it asap
+let ignoreAttributeChange = false
 const propInfoMapByClass = new WeakMap<ComponentConstructor, PropInfoMap>()
 const methodNamesByClass = new WeakMap<ComponentConstructor, Set<string>>()
 
@@ -120,10 +122,7 @@ function processPropDecorator(
   }
 
   if (!hasAttr) {
-    propInfoMap.set(propName, {
-      propName,
-      hasAttr
-    })
+    propInfoMap.set(propName, { propName, hasAttr })
   } else {
     const { fromPropToAttr, fromAttrToProp } = getPropConv(propConfig!.attr)
 
@@ -197,7 +196,6 @@ function element(params: {
 
     class CustomElement extends HTMLElement {
       private __component: Component
-
       static observedAttributes = attrNames
 
       constructor() {
@@ -297,9 +295,11 @@ function element(params: {
         oldAttrValue: string,
         newAttrValue: string
       ) {
-        const propInfo = attrInfoMap!.get(attrName)!
-        const newPropValue = (propInfo as any).fromAttrToProp(newAttrValue)
-        ;(this as any)[propInfo.propName] = newPropValue
+        if (!ignoreAttributeChange) {
+          const propInfo = attrInfoMap!.get(attrName)!
+          const newPropValue = (propInfo as any).fromAttrToProp(newAttrValue)
+          ;(this as any)[propInfo.propName] = newPropValue
+        }
       }
 
       getAttribute(attrName: string) {
@@ -332,9 +332,7 @@ function element(params: {
 // === other API =====================================================
 
 function ref<T>(value: T): { current: T | undefined } {
-  return {
-    current: value
-  }
+  return { current: value }
 }
 
 // === Component =====================================================
@@ -402,19 +400,13 @@ function convertPropNameToAttrName(propName: string) {
 }
 
 function getPropConv(attrType: AttrType): PropConverter {
-  switch (attrType) {
-    case String:
-      return stringPropConverter
-
-    case Number:
-      return numberPropConverter
-
-    case Boolean:
-      return booleanPropConverter
-
-    default:
-      return attrType as PropConverter
-  }
+  return attrType === String
+    ? stringPropConverter
+    : attrType === Number
+    ? numberPropConverter
+    : attrType === Boolean
+    ? booleanPropConverter
+    : (attrType as PropConverter)
 }
 
 function propInfoMapToAttrInfoMap(
@@ -427,9 +419,7 @@ function propInfoMapToAttrInfoMap(
   const ret = new Map<string, AttrInfo>()
 
   for (const propInfo of propInfoMap.values()) {
-    if (propInfo.hasAttr) {
-      ret.set(propInfo.attrName, propInfo)
-    }
+    propInfo.hasAttr && ret.set(propInfo.attrName, propInfo)
   }
 
   return ret
@@ -459,7 +449,14 @@ function addProps(proto: HTMLElement, propInfoMap?: PropInfoMap) {
             const attrValue = propInfo.fromPropToAttr(value)
 
             if (typeof attrValue === 'string') {
-              this.setAttribute(propInfo.attrName, attrValue)
+              // TODO: using this module level `ignoreAttributeChange`flag
+              // is kinda ugly - change it asap
+              try {
+                ignoreAttributeChange = true
+                this.setAttribute(propInfo.attrName, attrValue)
+              } finally {
+                ignoreAttributeChange = false
+              }
             } else {
               this.removeAttribute(propInfo.attrName)
             }

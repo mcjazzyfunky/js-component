@@ -13,10 +13,10 @@ import {
   tag: 'simple-counter'
 })
 class SimpleCounter extends Component {
-  @prop({ attr: Number })
+  @prop({ attr: Number, reflect: true })
   initialCount = 0
 
-  @prop({ attr: String })
+  @prop({ attr: String, reflect: true })
   label = 'Counter'
 
   @method
